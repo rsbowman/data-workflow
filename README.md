@@ -1,7 +1,8 @@
-# Dataflow/Data Science stuff
+# Code examples from my Blog
 
-Here are some small examples of munging data with various programs.  Right now,
-there's only the following:
+Here are some small examples from my blog http://seanbowman.me/blog.  
+
+Right now there are the following bits:
 
 ## Human Resources Data Workflow Example using Redo
 
@@ -22,3 +23,6 @@ merely to show that Redo is a viable option for these sorts of problems.
 You'll need Redo (link above) and jq if you intend to use
 `name_length_reports_jq.do`.  You'll need python, too.
 
+## Union-Find data structure
+
+Here is a simple union find data structure in python from the post ....
