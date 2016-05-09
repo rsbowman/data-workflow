@@ -1,0 +1,66 @@
+/* namespace lambda with */
+using reduce; // for making symbols
+
+nonfix lam app;
+
+/* yuck global state.. substitution sucks :( */
+let next_sym = ref 0;
+new_symbol = lispsym ("x" + str (put next_sym (get next_sym + 1)));
+
+alpha (lam x t) s = lam s (alpha_helper x s t) with
+    alpha_helper x s (lam z t) = lam (alpha_helper x s z) (alpha_helper x s t);
+    alpha_helper x s (app e1 e2) = app (alpha_helper x s e1) (alpha_helper x s e2);
+    alpha_helper x s x = s;
+    alpha_helper x s z = z
+end;
+
+subst x y (lam y term) = lam y term;
+subst x y (lam z t) = subst_helper x y (alpha (lam z t) new_symbol) with
+    subst_helper x y (lam s t) = lam s (subst x y t) end;
+subst x y (app M N) = app (subst x y M) (subst x y N);
+subst z y y = z;
+subst z y x = x;
+
+reduce_cbn (lam x t) = lam x t;
+reduce_cbn (app e1 e2) = case reduce_cbn e1 of
+    lam x t = reduce_cbn (subst e2 x t);
+    e1p = app e1p e2
+end;
+reduce_cbn x = x;
+
+reduce_cbv (lam x t) = lam x t;
+reduce_cbv (app e1 e2) = case reduce_cbv e1 of
+    lam x t = reduce_cbv (subst (reduce_cbv e2) x t);
+    e1p = app e1p (reduce_cbv e2);
+end;
+reduce_cbv x = x;
+
+reduce_ao (lam x t) = lam x (reduce_ao t);
+reduce_ao (app e1 e2) = case reduce_ao e1 of
+    lam x t = reduce_ao (subst (reduce_ao e2) x t);
+    e1p = app e1p (reduce_ao e2);
+end;
+reduce_ao x = x;
+
+reduce_normal (lam x t) = lam x (reduce_normal t);
+reduce_normal (app e1 e2) = case reduce_cbn e1 of
+    lam x t = reduce_normal (subst e2 x t);
+    e1p = app (reduce_normal e1p) (reduce_normal e2);
+end;
+reduce_normal x = x;
+
+// call by name fixed point combinator
+Y = lam f (app (lam y (app f (app y y))) (lam x (app f (app x x))));
+
+// call by value fixed point combinator
+fix_cbv = lam f (app (lam x (app f (lam y (app (app x x) y)))) (lam q (app f (lam p (app (app q q) p)))));
+
+lam_zero = lam f (lam z z);
+lam_succ = lam n (lam g (lam s (app g (app (app n g) s))));
+lam_plus = lam m (lam n (lam s (lam z (app (app m s) (app (app n s) z)))));
+lam_times = lam m (lam n (app (app m (app lam_plus n)) lam_zero));
+
+church_numeral 0 = lam_zero;
+church_numeral n = app lam_succ (church_numeral (n-1));
+
+/* end; */
