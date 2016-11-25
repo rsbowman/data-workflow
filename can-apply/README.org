@@ -1,0 +1,98 @@
+#+TITLE: Determine whether a function can be applied to given arguments
+#+AUTHOR: R. Sean Bowman
+#+PROPERTY: tangle can-apply.cpp
+#+PROPERTY: main no
+
+Recently I needed to do the thing the title says.  More precisely, I had a
+function =f= and an argument =x= and I wanted to know whether =f(x)= would
+compile or not.  C++ metaprogramming is horrifying and fascinating to me,
+and I got hooked on this problem.
+
+I found a few solutions, but I like the one here which uses =decltype=,
+=declval=, and parameter packs.  My original (non-) solution needed to use
+SNIFAE to select a class template while also using a parameter pack for the
+function arguments.  That would mean having a template parameter after a
+parameter pack, and this is disallowed (or so I believed).  I learned that a
+parameter pack must be the last parameter of the *primary* class template, but
+this need not be the case for a specialization.  Neat!
+
+Frankly I'm not sure why learning this was the push I needed, because it's not
+really used in the code below.  Learning is always great and so forth.
+
+* The important bit
+The boolean member =CanApply<F, Args...>::value= is true if =F= is a function
+type that can be applied to arguments of type =Args...=.  The =CanApply= uses
+two helper templates that I've implemented as nested classes here.  The first,
+=Fargs=, is just a holder for the function type and the types of the arguments
+we're interested in.  The second, =CanApplyHelper=, actually does the work.  The
+primary template just defines =value= to be false.  The specialization a true
+=value= member, matches =Fargs= in the first template parameter, and uses
+=decltype= and =declval= to try to apply a function of type =F= to arguments of
+types =Args...=.  This is the SNIFAE bit which will select this specialization
+or not.
+
+#+BEGIN_SRC C++ :main no
+#include <iostream>
+#include <cassert>
+
+template <typename F, typename... Args>
+class CanApply {
+protected:
+    template <typename F2, typename... Args2>
+    struct Fargs {};
+
+    template <typename Fgs, typename = void>
+    struct CanApplyHelper {
+        static constexpr bool value = false;
+    };
+
+    template <typename F2, typename... Args2>
+    struct CanApplyHelper<
+        Fargs<F2, Args2...>,
+        decltype(std::declval<F2>().operator()(std::declval<Args2>()...), void())
+    > {
+        static constexpr bool value = true;
+    };
+
+public:
+    static constexpr bool value = CanApplyHelper<Fargs<F, Args...>>::value;
+};
+#+END_SRC
+
+* A helper function
+Often it's easier to test these things using a helper function.  The code above
+wants only types, not values.  Usually in code, though, we deal with values.  In
+the case of lambdas we can't even name the type!  This function returns true if
+the function =f= can be applied to arguments =args...=.
+
+We use =decltype= even though we already know the types in order to avoid
+"unused paremeter" warnings.
+
+#+BEGIN_SRC C++ :main no
+template <typename F, typename... Args>
+constexpr bool can_apply(F&& f, Args&&... args) {
+    return CanApply<decltype(f), decltype(args)...>::value;
+}
+
+#+END_SRC
+
+* A simple main for testing
+The tests here aren't that rigorous.  Oh well.  Hopefully you get the idea.
+
+#+BEGIN_SRC C++ :main no
+struct Foo {};
+
+int main(void) {
+    auto f = [](int x) { return x + 1; };
+    auto g = [](const std::string& s, const std::string& t) { return s + t; };
+
+    assert(can_apply(f, 3));
+    assert(!can_apply(f, Foo()));
+
+    assert(can_apply(g, "boo", "hey"));
+    assert(!can_apply(g, "yo"));
+
+    std::cout << "If you see this, the tests passed ;)" << std::endl;
+    return 0;
+}
+#+END_SRC
