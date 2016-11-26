@@ -31,7 +31,7 @@ primary template just defines =value= to be false.  The specialization a true
 types =Args...=.  This is the SNIFAE bit which will select this specialization
 or not.
 
-#+BEGIN_SRC C++ :main no
+#+BEGIN_SRC cpp :main no
 #include <iostream>
 #include <cassert>
 
@@ -68,7 +68,7 @@ the function =f= can be applied to arguments =args...=.
 We use =decltype= even though we already know the types in order to avoid
 "unused paremeter" warnings.
 
-#+BEGIN_SRC C++ :main no
+#+BEGIN_SRC cpp :main no
 template <typename F, typename... Args>
 constexpr bool can_apply(F&& f, Args&&... args) {
     return CanApply<decltype(f), decltype(args)...>::value;
@@ -79,7 +79,7 @@ constexpr bool can_apply(F&& f, Args&&... args) {
 * A simple main for testing
 The tests here aren't that rigorous.  Oh well.  Hopefully you get the idea.
 
-#+BEGIN_SRC C++ :main no
+#+BEGIN_SRC cpp :main no
 struct Foo {};
 
 int main(void) {
