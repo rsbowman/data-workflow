@@ -33,7 +33,7 @@ actor Philosopher
 
   fun ref _remove_requested(missing: Philosopher) =>
     try
-      _requested_forks.delete(_requested_forks.find(missing))
+      _requested_forks.delete(_requested_forks.find(missing)?)?
     else
       log("Couldn't remove requested fork!")
     end
@@ -48,8 +48,8 @@ actor Philosopher
 
     for i in Range(0, _waiting.size()) do
       try
-        _waiting(i).receive_fork(this)
-        _add_missing(_waiting(i))
+        _waiting(i)?.receive_fork(this)
+        _add_missing(_waiting(i)?)
       else
         log("COULDN'T SEND TO WAITING ")
       end
@@ -124,7 +124,7 @@ actor Main
     p5.add_missing(p1)
     p5.add_missing(p4)
 
-    let ps = [p2, p3, p1, p5, p4]
+    let ps = [p2; p3; p1; p5; p4]
     for p in ps.values() do
       p.hunger()
     end
